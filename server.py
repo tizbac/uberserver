@@ -6,6 +6,8 @@ import _thread as thread
 import traceback, signal, socket, sys, logging
 from twisted.internet import reactor
 from twisted.internet import task
+import coloredlogs
+coloredlogs.install(level='WARN')
 
 sys.path.append("protocol")
 sys.path.append(".")

@@ -8,11 +8,14 @@ import ChanServ
 import ip2country
 import datetime
 from protocol import Protocol, Channel, Battle
-
+import getpass
 
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from twisted.internet import ssl
+
+import base64
+import hashlib
 
 separator = '-'*60
 
@@ -241,6 +244,13 @@ class DataHandler:
 				if not issuer: issuer = self.chanserv
 				duration = mute['expires'] - now
 				self.channels[dbchannel.name].muteUser(issuer, target, mute['expires'], mute['reason'], duration)
+		
+		if len(self.userdb.list_mods()[0]) == 0:# 0 is admins, 1 is mods, misleading name
+			print("No admin exist, please enter username and password to create new one")
+			username = input("\033[0mUsername:\033[32m")
+			password = getpass.getpass("\033[0mPassword:")
+			self.userdb.register_user(username, base64.b64encode(hashlib.md5(password.encode()).digest()), "127.0.0.1", "root@localhost", "admin")
+			print("User created, no further action required")
 
 	def logout_stale_sessions(self):
 		to_logout = []

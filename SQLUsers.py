@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 import time, random, re, hashlib, base64
 import logging
+from argon2 import PasswordHasher
 
 import smtplib
 from email.mime.text import MIMEText
@@ -29,7 +30,7 @@ metadata = MetaData()
 users_table = Table('users', metadata,
 	Column('id', Integer, primary_key=True),
 	Column('username', String(40), unique=True), # unicode
-	Column('password', String(64)), # unicode(BASE64(ASCII)) (unicode is added by DB on write)
+	Column('password', String(256)), # unicode(BASE64(ASCII)) (unicode is added by DB on write)
 	Column('register_date', DateTime),
 	Column('last_login', DateTime),
 	Column('last_ip', String(15)), # would need update for ipv6
@@ -513,14 +514,15 @@ class UsersHandler:
 		return False, ""
 		
 	def check_login_user(self, username, password):
-		# password here is unicode(BASE64(MD5(...))), matches the register_user DB encoding
+		ph = PasswordHasher()
+		# password here is argon2(unicode(BASE64(MD5(...)))), matches the register_user DB encoding
 		dbuser = self.sess().query(User).filter(User.username == username).first()
 		if (not dbuser):
 			return False, 'Invalid username or password'
 		if dbuser.username != username:
 			# user tried to login with wrong upper/lower case somewhere in their username
 			return False, "Invalid username -- did you mean '%s'" % dbuser.username
-		if dbuser.password != password:
+		if not ph.verify(dbuser.password, password):
 			return False, 'Invalid username or password'
 		return True, ""
 		
@@ -538,8 +540,9 @@ class UsersHandler:
 		return dbuser
 
 	def set_user_password(self, username, password):
+		ph = PasswordHasher()
 		dbuser = self.sess().query(User).filter(User.username==username).first()
-		dbuser.password = password
+		dbuser.password = ph.hash(password)
 		self.sess().commit()
 
 	def end_session(self, user_id):
@@ -575,10 +578,12 @@ class UsersHandler:
 				return False, 'Account registration failed: %s' % ipban.reason
 		return True, ""
 
-	def register_user(self, username, password, ip, email):
+	def register_user(self, username, password, ip, email, access="user"):
 		# note: password here is BASE64(MD5(...)) and already in unicode
 		# assume check_register_user was already called
-		entry = User(username, password, ip, email)
+		ph = PasswordHasher()
+		entry = User(username, ph.hash(password), ip, email)
+		entry.access = access
 
 		self.sess().add(entry)
 		self.sess().commit()
