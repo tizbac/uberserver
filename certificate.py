@@ -7,10 +7,10 @@ import time
 def timestr():
 	return time.strftime("%Y%m%d%H%M%SZ", time.gmtime()).encode("UTF-8")
 
-def create_self_signed_cert(filename):
+def create_self_signed_cert(certname, keyname):
 	# creates a serlf-signed certificate
 	# to verify run openssl x509 -in server.key -text -noout
-	print("Generating self-signed certificate %s" % (filename))
+	print("Generating self-signed certificate %s" % str((certname, keyname)))
 
 
 	# create a key pair
@@ -34,9 +34,10 @@ def create_self_signed_cert(filename):
 	cert.set_pubkey(k)
 	cert.sign(k, 'sha1')
 
-	with open(filename, 'wt') as certfile:
+	with open(certname, 'wt') as certfile:
 		certfile.write(crypto.dump_certificate(crypto.FILETYPE_PEM, cert).decode("UTF-8"))
-		certfile.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, k).decode("UTF-8"))
+	with open(keyname, "wt") as keyfile:
+		keyfile.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, k).decode("UTF-8"))
 
 
 #create_self_signed_cert("server.key")

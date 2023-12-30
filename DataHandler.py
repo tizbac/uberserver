@@ -9,13 +9,15 @@ import ip2country
 import datetime
 from protocol import Protocol, Channel, Battle
 import getpass
-
+from pem.twisted import certificateOptionsFromFiles
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from twisted.internet import ssl
 
 import base64
 import hashlib
+
+
 
 separator = '-'*60
 
@@ -72,7 +74,7 @@ class DataHandler:
 
 		self.start_time = time.time()
 		self.detectIp()
-		self.cert = None
+		self.sslFactory = None
 		
 		# stats
 		self.inbound_command_stats = {}
@@ -105,6 +107,9 @@ class DataHandler:
 			'mod':{'msglength':10000, 'bytespersecond':2000, 'seconds':10},
 			'admin':{'msglength':10000, 'bytespersecond':2000, 'seconds':10},
 		}
+
+		self.certfile = "server.crt"
+		self.keyfile = "server.key"
 
 	def initlogger(self, filename):
 		# logging
@@ -308,6 +313,10 @@ class DataHandler:
 		print('      { Sets latest Spring version to this string. Defaults to "*" }')
 		print('  -s, --sqlurl SQLURL')
 		print('      { Uses SQL database at the specified sqlurl for user, channel, and ban storage. }')
+		print('  --cert, --cert certificate.crt (PEM)')
+		print('      Pem file with one or more certificate to make full trust chain')
+		print('  --key, --key key.key (PEM)')
+		print('      Pem file with private key of last certificate of trust chain')
 		print('  -c, --no-censor')
 		print('      { Disables censoring of #main, #newbies, and usernames (default is to censor) }')
 		print('  --proxies /path/to/proxies.txt')
@@ -404,15 +413,18 @@ class DataHandler:
 				except:
 					print('Error opening trusted proxy file.')
 					self.trusted_proxyfile = None
+			elif arg == "cert":
+				self.certfile = argp[0]
+			elif arg == "key":
+				self.keyfile = argp[0]
 
 	def loadCertificates(self):
-		certfile = "server.pem"
-		if not os.path.isfile(certfile):
+		if not os.path.isfile(self.certfile) and not os.path.isfile(self.keyfile):
 			import certificate
-			certificate.create_self_signed_cert(certfile)
-		os.chmod(certfile, 0o600)
-		with open(certfile, 'r') as data:
-			self.cert = ssl.PrivateCertificate.loadPEM(data.read()).options()
+			certificate.create_self_signed_cert(self.certfile, self.keyfile)
+		os.chmod(self.certfile, 0o600)
+		os.chmod(self.keyfile, 0o600)
+		self.sslFactory = certificateOptionsFromFiles(self.certfile, self.keyfile)
 
 	def parseFiles(self):
 		self.loadCertificates()

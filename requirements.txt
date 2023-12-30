@@ -5,3 +5,4 @@ SQLAlchemy==1.3.0
 Twisted==22.10.0
 argon2-cffi==23.1.0
 coloredlogs
+pem==23.1.0
