@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import time, random, re, hashlib, base64
 import logging
 from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 
 import smtplib
 from email.mime.text import MIMEText
@@ -522,7 +523,10 @@ class UsersHandler:
 		if dbuser.username != username:
 			# user tried to login with wrong upper/lower case somewhere in their username
 			return False, "Invalid username -- did you mean '%s'" % dbuser.username
-		if not ph.verify(dbuser.password, password):
+		try:
+			if not ph.verify(dbuser.password, password):
+				return False, 'Invalid username or password'
+		except VerifyMismatchError:
 			return False, 'Invalid username or password'
 		return True, ""
 		
