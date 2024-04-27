@@ -834,6 +834,12 @@ class Protocol:
 		@required.str password: Password to use (old-style: BASE64(MD5(PWRD)), new-style: BASE64(PWRD))
 		'''
 
+		if self._root.disableSignupURL is not None:
+			client.Send("REGISTRATIONURL %s" % (self._root.disableSignupURL ))
+			client.Send("REGISTRATIONDENIED To register please visit %s" % (self._root.disableSignupURL ))
+			
+			return
+
 		# well formed-ness tests
 		good, reason = self._validUsernameSyntax(username)
 		if not good:

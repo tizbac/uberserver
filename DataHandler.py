@@ -41,6 +41,8 @@ class DataHandler:
 		self.port = 8200
 		self.natport = self.port + 1
 		self.min_spring_version = '*'
+
+		self.disableSignupMessage = None
 		
 		self.agreement = []
 		self.motd = []
@@ -325,6 +327,8 @@ class DataHandler:
 		print('     { sets the pat to the agreement file which is sent to a client registering at the server }')
 		print('   -r --redirect "hostname/ip port"')
 		print('     { redirects connecting clients to the given ip and port')
+		print('   -ds Message')
+		print('     Forbid lobby signup with specified url')
 		print('SQLURL Examples:')
 		#print('  "sqlite:///:memory:" or "sqlite:///"')
 		#print('     { both make a temporary database in memory }')
@@ -417,6 +421,8 @@ class DataHandler:
 				self.certfile = argp[0]
 			elif arg == "key":
 				self.keyfile = argp[0]
+			elif arg == "ds":
+				self.disableSignupURL = argp[0]
 
 	def loadCertificates(self):
 		if not os.path.isfile(self.certfile) and not os.path.isfile(self.keyfile):
