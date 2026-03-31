@@ -17,6 +17,7 @@ import _thread as thread
 
 import Channel
 import Battle
+import hashlib
 import BridgedClient
 
 # see https://springrts.com/dl/LobbyProtocol/ProtocolDescription.html#MYSTATUS:client
@@ -336,8 +337,14 @@ class Protocol:
 		# check if we've got enough words for filling the required args
 		required_args = total_args - optional_args
 
+		args2 = list(function_info.args[2:])
+		for i in range(0, len(args2)):
+			if i+len(function_info.defaults) >= len(args2):
+				args2[i] = "[%s]"%args2[i]
+		
+
 		if (numspaces < required_args):
-			self.out_SERVERMSG(client, '%s failed. Incorrect arguments.' % command)
+			self.out_SERVERMSG(client, '%s failed. Incorrect arguments. Expected: %s' % (command, " ".join(args2)))
 			return False, []
 		if (required_args == 0 and numspaces == 0):
 			return True, []
@@ -1127,21 +1134,20 @@ class Protocol:
 		self._calc_access_status(client)
 		self._SendLoginInfo(client)
 
-	def in_CREATEBOTACCOUNT(self, client, username, from_username, founder_username=None):
+	def in_CREATEBOTACCOUNT(self, client, username, password, founder_username=None):
 		# Create a new botflagged account with a blank email & the same password as from_username
 		# register its battle to founder_username
 		good, reason = self._validUsernameSyntax(username)
 		if not good:
 			self.out_FAILED(client, "CREATEBOTACCOUNT", "Invalid username '%s'" % username, True)
 			return
+		ph = PasswordHasher()
+		h1 = hashlib.new("md5")
+		h1.update(password.encode("utf-8"))
 
-		from_client = self.clientFromUsername(from_username, True)
-		if not from_client:
-			self.out_FAILED(client, "CREATEBOTACCOUNT", "User does not exist '%s'" % from_username, True)
-			return
-		password = from_client.password
-		ip_address = from_client.ip_address
-		country_code = from_client.country_code
+		password = base64.b64encode(h1.digest())
+		ip_address = "127.0.0.1"
+		country_code = "IT"
 		email = None # bots don't have email
 
 		good, reason = self.userdb.check_register_user(username)
@@ -1169,13 +1175,11 @@ class Protocol:
 		self.userdb.save_user(bot_client)
 
 		# declare success
-		self.broadcast_Moderator('New bot: <%s> created by <%s> from <%s>' %(username, client.username, from_client.username))
-		msg = "A new bot account <%s> has been created, with the same password as <%s>" % (bot_client.username, from_client.username)
+		self.broadcast_Moderator('New bot: <%s> created by <%s>' %(username, client.username))
+		msg = "A new bot account <%s> has been created" % (bot_client.username)
 		if founder:
 			msg += ", and battle founder <%s>" % founder.username
 		self.out_SERVERMSG(client, msg)
-		if client != from_client:
-			self.out_SERVERMSG(from_client, msg)
 
 
 	def in_SAY(self, client, chan, msg):
