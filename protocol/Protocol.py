@@ -11,6 +11,8 @@ import datetime
 import base64
 import json
 import traceback
+import random
+import string
 
 import urllib.request
 import _thread as thread
@@ -1134,14 +1136,19 @@ class Protocol:
 		self._calc_access_status(client)
 		self._SendLoginInfo(client)
 
-	def in_CREATEBOTACCOUNT(self, client, username, password, founder_username=None):
-		# Create a new botflagged account with a blank email & the same password as from_username
+	def in_CREATEBOTACCOUNT(self, client, username, password="", founder_username=None):
+		# Create a new botflagged account with a blank email
 		# register its battle to founder_username
 		good, reason = self._validUsernameSyntax(username)
 		if not good:
 			self.out_FAILED(client, "CREATEBOTACCOUNT", "Invalid username '%s'" % username, True)
 			return
-		ph = PasswordHasher()
+		
+		generated_password = None
+		if password == "":
+			chars = string.ascii_letters + string.digits
+			password = ''.join(random.choice(chars) for _ in range(16))
+			generated_password = password
 		h1 = hashlib.new("md5")
 		h1.update(password.encode("utf-8"))
 
@@ -1179,6 +1186,8 @@ class Protocol:
 		msg = "A new bot account <%s> has been created" % (bot_client.username)
 		if founder:
 			msg += ", and battle founder <%s>" % founder.username
+		if generated_password is not None:
+			msg += ", Bot auto-generated password is %s" % generated_password
 		self.out_SERVERMSG(client, msg)
 
 
