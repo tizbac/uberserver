@@ -341,7 +341,7 @@ class Protocol:
 
 		args2 = list(function_info.args[2:])
 		for i in range(0, len(args2)):
-			if i+len(function_info.defaults) >= len(args2):
+			if function_info.defaults is not None and i+len(function_info.defaults) >= len(args2):
 				args2[i] = "[%s]"%args2[i]
 		
 
