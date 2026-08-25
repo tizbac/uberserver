@@ -88,7 +88,7 @@ type Client struct {
 	wentIngame     int
 	spectator      bool
 	battleStatus   map[string]string
-	teamColor      string
+	teamColor      any // string initially, int after MYBATTLESTATUS (mirrors Python's str/int mix)
 	hostPort       *int
 	udpPort        int
 

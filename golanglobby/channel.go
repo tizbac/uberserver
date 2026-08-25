@@ -689,7 +689,7 @@ func (b *Battle) joinBattle(client *Client) {
 			specs++
 		}
 		battlestatus := b.calcBattleStatus(battleClient)
-		client.Send(fmt.Sprintf("CLIENTBATTLESTATUS %s %s %s", battleClient.username, battlestatus, battleClient.teamColor))
+		client.Send(fmt.Sprintf("CLIENTBATTLESTATUS %s %s %s", battleClient.username, battlestatus, pyStr(battleClient.teamColor)))
 	}
 
 	for name, bot := range b.bots {
@@ -737,11 +737,7 @@ func (b *Battle) leaveBattle(client *Client) {
 	}
 	b.spectators = specs
 	if oldSpecs != specs {
-		locked := 0
-		if b.locked {
-			locked = 1
-		}
-		server.broadcast(fmt.Sprintf("UPDATEBATTLEINFO %s %d %d %s %s", b.battleIDStr(), b.spectators, locked, nilStr(b.mapHash), b.mapName), "", nil, nil, "", "")
+		server.broadcast(b.updateBattleInfoLine(), "", nil, nil, "", "")
 	}
 }
 

@@ -146,17 +146,17 @@ func newProtocol(root *Server) *Protocol {
 		"CONFIRMAGREEMENT": {total: 1, optional: 1, expected: "[verification_code]", fn: p.inConfirmAgreement},
 
 		// user: battle
-		"ADDBOT":             {total: 4, expected: "name battlestatus teamcolor AIDLL"},
-		"ADDSTARTRECT":       {total: 5, expected: "allyno left top right bottom"},
-		"BATTLEHOSTMSG":      {total: 3, expected: "battle_name username msg"},
-		"DISABLEUNITS":       {total: 1, expected: "units"},
-		"ENABLEALLUNITS":     {total: 0, expected: ""},
-		"ENABLEUNITS":        {total: 1, expected: "units"},
-		"FORCEALLYNO":        {total: 2, expected: "username allyno"},
-		"FORCESPECTATORMODE": {total: 1, expected: "username"},
-		"FORCETEAMCOLOR":     {total: 2, expected: "username teamcolor"},
-		"FORCETEAMNO":        {total: 2, expected: "username teamno"},
-		"HANDICAP":           {total: 2, expected: "username value"},
+		"ADDBOT":             {total: 4, expected: "name battlestatus teamcolor AIDLL", fn: func(c *Client, a []string) { p.inAddBot(c, a[0], a[1], a[2], a[3]) }},
+		"ADDSTARTRECT":       {total: 5, expected: "allyno left top right bottom", fn: func(c *Client, a []string) { p.inAddStartRect(c, a[0], a[1], a[2], a[3], a[4]) }},
+		"BATTLEHOSTMSG":      {total: 3, expected: "battle_name username msg", fn: func(c *Client, a []string) { p.inBattleHostMsg(c, a[0], a[1], a[2]) }},
+		"DISABLEUNITS":       {total: 1, expected: "units", fn: func(c *Client, a []string) { p.inDisableUnits(c, a[0]) }},
+		"ENABLEALLUNITS":     {total: 0, expected: "", fn: func(c *Client, a []string) { p.inEnableAllUnits(c) }},
+		"ENABLEUNITS":        {total: 1, expected: "units", fn: func(c *Client, a []string) { p.inEnableUnits(c, a[0]) }},
+		"FORCEALLYNO":        {total: 2, expected: "username allyno", fn: func(c *Client, a []string) { p.inForceAllyNo(c, a[0], a[1]) }},
+		"FORCESPECTATORMODE": {total: 1, expected: "username", fn: func(c *Client, a []string) { p.inForceSpectatorMode(c, a[0]) }},
+		"FORCETEAMCOLOR":     {total: 2, expected: "username teamcolor", fn: func(c *Client, a []string) { p.inForceTeamColor(c, a[0], a[1]) }},
+		"FORCETEAMNO":        {total: 2, expected: "username teamno", fn: func(c *Client, a []string) { p.inForceTeamNo(c, a[0], a[1]) }},
+		"HANDICAP":           {total: 2, expected: "username value", fn: func(c *Client, a []string) { p.inHandicap(c, a[0], a[1]) }},
 		"JOINBATTLE": {total: 3, optional: 2, expected: "battle_id [key] [scriptPassword]", fn: func(c *Client, a []string) {
 			key, keySet := "", false
 			if len(a) > 1 {
@@ -178,21 +178,29 @@ func newProtocol(root *Server) *Protocol {
 			}
 			p.inJoinBattleDeny(c, a[0], reason)
 		}},
-		"KICKFROMBATTLE": {total: 1, expected: "username"},
+		"KICKFROMBATTLE": {total: 1, expected: "username", fn: func(c *Client, a []string) {
+			p.inKickFromBattle(c, a[0])
+		}},
 		"LEAVEBATTLE": {total: 0, expected: "", fn: func(c *Client, a []string) {
 			p.inLeaveBattle(c)
 		}},
-		"MYBATTLESTATUS": {total: 2, expected: "_battlestatus _myteamcolor"},
+		"MYBATTLESTATUS": {total: 2, expected: "_battlestatus _myteamcolor", fn: func(c *Client, a []string) {
+			p.inMyBattleStatus(c, a[0], a[1])
+		}},
 		"OPENBATTLE": {total: 9, expected: "type natType key port maxplayers hashcode rank maphash sentence_args", fn: func(c *Client, a []string) {
 			p.inOpenBattle(c, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8])
 		}},
-		"REMOVEBOT":        {total: 1, expected: "name"},
-		"REMOVESCRIPTTAGS": {total: 1, expected: "tags"},
-		"REMOVESTARTRECT":  {total: 1, expected: "allyno"},
-		"RING":             {total: 1, expected: "username"},
-		"SETSCRIPTTAGS":    {total: 1, expected: "scripttags"},
-		"UPDATEBATTLEINFO": {total: 4, expected: "SpectatorCount locked maphash mapname"},
-		"UPDATEBOT":        {total: 3, expected: "name battlestatus teamcolor"},
+		"REMOVEBOT":        {total: 1, expected: "name", fn: func(c *Client, a []string) { p.inRemoveBot(c, a[0]) }},
+		"REMOVESCRIPTTAGS": {total: 1, expected: "tags", fn: func(c *Client, a []string) { p.inRemoveScriptTags(c, a[0]) }},
+		"REMOVESTARTRECT":  {total: 1, expected: "allyno", fn: func(c *Client, a []string) { p.inRemoveStartRect(c, a[0]) }},
+		"RING":             {total: 1, expected: "username", fn: func(c *Client, a []string) { p.inRing(c, a[0]) }},
+		"SETSCRIPTTAGS":    {total: 1, expected: "scripttags", fn: func(c *Client, a []string) { p.inSetScriptTags(c, a[0]) }},
+		"UPDATEBATTLEINFO": {total: 4, expected: "SpectatorCount locked maphash mapname", fn: func(c *Client, a []string) {
+			p.inUpdateBattleInfo(c, a[0], a[1], a[2], a[3])
+		}},
+		"UPDATEBOT": {total: 3, expected: "name battlestatus teamcolor", fn: func(c *Client, a []string) {
+			p.inUpdateBot(c, a[0], a[1], a[2])
+		}},
 
 		// user: channel
 		"CHANNELS": {total: 0, expected: "", fn: func(c *Client, a []string) {
@@ -1598,6 +1606,19 @@ func (p *Protocol) inReload(c *Client, args []string) {
 
 // dec2bin mirrors Protocol._dec2bin: decimal to a zero-padded binary string
 // (MSB first).
+// pyStr mirrors Python's %s conversion for values that may be a string or an
+// int (e.g. client.teamColor).
+func pyStr(v any) string {
+	switch t := v.(type) {
+	case string:
+		return t
+	case int:
+		return strconv.Itoa(t)
+	default:
+		return fmt.Sprintf("%v", v)
+	}
+}
+
 func (p *Protocol) dec2bin(i, bits int) string {
 	b := ""
 	for i > 0 {
