@@ -18,7 +18,11 @@ class C:
         while b'\n' not in buf:
             buf += raw.recv(4096)
         print("[%s] <- %s" % (name, buf.decode().strip()))
-        raw.sendall(b"STARTTLS\n")
+        raw.sendall(b"STLS\n")
+        ok = b''
+        while b'\n' not in ok:
+            ok += raw.recv(4096)
+        assert b'OK' in ok, "STLS ack: %r" % ok
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE

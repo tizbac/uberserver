@@ -495,9 +495,25 @@ func (p *Protocol) inStartTLS(c *Client, args []string) {
 	c.Send(fmt.Sprintf("%s %s * %d 0", p.root.serverName, p.root.serverVersion, p.root.natPort))
 }
 
-// inSTLS mirrors Protocol.in_STLS: compatibility acknowledgement only.
+// inSTLS mirrors Protocol.in_STLS: acknowledge over plaintext, upgrade the
+// connection to TLS, then resend the login screen over the secure channel.
+// The handshake is connection I/O, so the state lock is released for its
+// duration.
 func (p *Protocol) inSTLS(c *Client, args []string) {
+	if server.tlsConfig == nil {
+		log.Printf("Error in handling data from client: no TLS certificates loaded")
+		c.remove("TLS failed")
+		return
+	}
 	c.Send("OK cmd=STLS")
+	server.stateUnlock()
+	c.startTLS()
+	server.stateLock()
+	if !c.tls {
+		return
+	}
+	c.flushBuffer()
+	c.Send(fmt.Sprintf("%s %s * %d 0", p.root.serverName, p.root.serverVersion, p.root.natPort))
 }
 
 // removeClient mirrors Protocol._remove: drop all references to a
